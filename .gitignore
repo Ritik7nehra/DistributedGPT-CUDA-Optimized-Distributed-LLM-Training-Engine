@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+checkpoints/
+wandb/
+runs/
+*.pt
+*.bin
+*.o
+*.so
+build/
+data/*
+!data/.gitkeep
+.DS_Store
