@@ -1,0 +1,17 @@
+model:
+  block_size: 256
+  n_layer: 6
+  n_head: 6
+  n_embd: 384
+  dropout: 0.1
+
+train:
+  batch_size: 32
+  learning_rate: 3.0e-4
+  min_lr: 3.0e-5
+  warmup_steps: 100
+  max_steps: 5000
+  grad_clip: 1.0
+  weight_decay: 0.1
+  eval_interval: 250
+  amp: true
