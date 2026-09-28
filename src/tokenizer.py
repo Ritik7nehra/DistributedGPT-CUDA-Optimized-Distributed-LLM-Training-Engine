@@ -4,8 +4,8 @@ Minimal character-level tokenizer.
 This is a deliberately simple baseline so the rest of the pipeline
 (dataset -> model -> train -> generate) can be exercised end to end.
 Swap this out for a BPE / SentencePiece tokenizer in a later phase
-without changing anything downstream, as long as encode/decode and
-vocab_size keep the same contract.
+without changing anything downstream, as long as `encode`/`decode`
+and `vocab_size` keep the same contract.
 """
 
 from __future__ import annotations

@@ -1,0 +1,25 @@
+# Config for multi-GPU DDP / FSDP runs. Larger model, larger effective
+# batch size via gradient accumulation, tuned for a single node with
+# several GPUs (see distributed/ddp_train.py, distributed/fsdp_train.py).
+model:
+  block_size: 512
+  n_layer: 8
+  n_head: 8
+  n_embd: 512
+  dropout: 0.1
+
+train:
+  batch_size: 32          # per-GPU micro-batch
+  learning_rate: 3.0e-4
+  min_lr: 3.0e-5
+  warmup_steps: 200
+  max_steps: 10000
+  grad_clip: 1.0
+  weight_decay: 0.1
+  eval_interval: 500
+  amp: true
+  grad_accum_steps: 4      # global_batch = batch_size * world_size * grad_accum_steps
+
+checkpoint:
+  save_interval: 500
+  dir: checkpoints_distributed

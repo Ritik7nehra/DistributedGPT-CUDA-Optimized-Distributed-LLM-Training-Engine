@@ -3,7 +3,7 @@ A minimal decoder-only GPT: token+position embeddings, stacked causal
 self-attention blocks, and a linear head tied to nothing fancy — just
 enough structure to train end to end and to serve as the attachment
 point for later custom CUDA kernels (fused attention, fused LayerNorm,
-etc.) in the `cuda` module.
+etc.) in the `cuda/` module.
 """
 
 from __future__ import annotations
@@ -39,12 +39,9 @@ class CausalSelfAttention(nn.Module):
         self.attn_dropout = nn.Dropout(config.dropout)
         self.resid_dropout = nn.Dropout(config.dropout)
 
+        # Non-persistent causal mask buffer; recreated on load, not saved to checkpoints.
         mask = torch.tril(torch.ones(config.block_size, config.block_size))
-        self.register_buffer(
-            "mask",
-            mask.view(1, 1, config.block_size, config.block_size),
-            persistent=False,
-        )
+        self.register_buffer("mask", mask.view(1, 1, config.block_size, config.block_size), persistent=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, T, C = x.shape
@@ -140,11 +137,7 @@ class GPT(nn.Module):
 
     @torch.no_grad()
     def generate(
-        self,
-        idx: torch.Tensor,
-        max_new_tokens: int,
-        temperature: float = 1.0,
-        top_k: int | None = None,
+        self, idx: torch.Tensor, max_new_tokens: int, temperature: float = 1.0, top_k: int | None = None
     ) -> torch.Tensor:
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.config.block_size :]

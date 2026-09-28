@@ -1,107 +1,111 @@
-# CUDA-Optimized Distributed LLM Training Engine
+# distributed-gpt — CUDA-Optimized Distributed LLM Training Engine
 
-A from-scratch GPT training stack designed as a foundation for multi-GPU and multi-node LLM training, custom CUDA kernels, distributed training utilities, benchmarking, monitoring, and optimized inference.
+A from-scratch GPT training engine demonstrating the full systems stack from a small PyTorch Transformer to distributed, CUDA-optimized training and production-style inference.
 
-> **Current status:** Phase 1 — working single-GPU GPT baseline. The distributed/CUDA/benchmarking modules are scaffolded for future phases.
+## All 7 phases implemented
 
-## Project structure
+| Phase | Capability | Implementation |
+|---|---|---|
+| 1 | GPT baseline | tokenizer, dataset, causal attention, MLP, training, generation |
+| 2 | Multi-GPU DDP | PyTorch DDP, NCCL/Gloo, distributed samplers, gradient synchronization |
+| 3 | FSDP | FULL_SHARD, Transformer block wrapping, activation checkpointing |
+| 4 | Custom CUDA | vector addition and RMSNorm kernels, PyTorch extension bindings, CPU fallback |
+| 5 | Benchmarks | CUDA kernel, precision, DataLoader, and distributed scaling benchmarks |
+| 6 | HPC + monitoring | SLURM single/multi-node jobs, JSONL metrics, W&B option, nvidia-smi monitor |
+| 7 | Optimized inference | FastAPI single/batch generation, checkpoint loading, Docker/Hugging Face Space support |
+
+## Repository layout
 
 ```
-.
-├── README.md
-├── requirements.txt
-├── Dockerfile
-├── configs/
-│   └── gpt_small.yaml
-├── src/
-│   ├── model.py
-│   ├── dataset.py
-│   ├── tokenizer.py
-│   ├── train.py
-│   └── generate.py
-├── cuda/           # Custom CUDA kernels — future phases
-├── distributed/    # DDP/FSDP/tensor/pipeline parallelism — future phases
-├── benchmarks/     # Throughput and memory benchmarks — future phases
-├── monitoring/     # Metrics and GPU monitoring — future phases
-├── inference/      # Optimized serving — future phases
-├── slurm/          # SLURM cluster jobs — future phases
-├── tests/          # Unit/integration tests
-└── data/           # Local training data (git-ignored)
+distributed-gpt/
+├── configs/                 # tiny, single-GPU, distributed configs
+├── src/                     # GPT model, tokenizer, dataset, training, checkpoints
+├── distributed/             # DDP + FSDP training
+├── cuda/                    # CUDA kernels + PyTorch bindings
+├── benchmarks/              # performance/scaling experiments and results
+├── monitoring/              # metrics logger + GPU monitor
+├── inference/               # FastAPI inference service
+├── slurm/                   # single-node and multi-node cluster jobs
+├── tests/                   # model, dataset, checkpoint, CUDA, DDP, API tests
+├── huggingface_space/       # deployable CPU demo
+└── Dockerfile
 ```
-
-## Baseline components
-
-- **Decoder-only GPT** with causal self-attention, MLP blocks, LayerNorm, token embeddings, and positional embeddings.
-- **Character-level tokenizer** as a minimal end-to-end baseline.
-- **Next-token prediction dataset** with train/validation split.
-- **Training loop** with AdamW, AMP/bfloat16 on CUDA, gradient clipping, cosine learning-rate decay, warmup, validation, and checkpointing.
-- **Autoregressive generation** with temperature and top-k sampling.
-- **CUDA Docker environment** based on NVIDIA CUDA 12.4.
 
 ## Quick start
 
-### 1. Install dependencies
+```bash
+pip install -r requirements.txt
+# Put a text corpus at data/input.txt
+python src/train.py --data data/input.txt --config configs/tiny.yaml
+python src/generate.py --checkpoint checkpoints/ckpt.pt --prompt "Hello" --max-new-tokens 200
+pytest tests/ -v
+```
+
+## Multi-GPU DDP
 
 ```bash
-python -m pip install -r requirements.txt
+torchrun --standalone --nproc_per_node=2 distributed/ddp_train.py \
+  --data data/input.txt --config configs/distributed.yaml
 ```
 
-### 2. Add training data
-
-Place a plain-text corpus at:
-
-```
-data/input.txt
-```
-
-Training data is intentionally git-ignored.
-
-### 3. Train
-
-```python
-python src/train.py --data data/input.txt --config configs/gpt_small.yaml --max-steps 500
-```
-
-A checkpoint and tokenizer are written to `checkpoints/`.
-
-### 4. Generate text
+## FSDP + activation checkpointing
 
 ```bash
-python src/generate.py \
-  --checkpoint checkpoints/ckpt.pt \
-  --prompt "Hello" \
-  --max-new-tokens 200
+torchrun --standalone --nproc_per_node=2 distributed/fsdp_train.py \
+  --data data/input.txt --config configs/distributed.yaml --activation-checkpointing
 ```
 
-### 5. Run the model sanity check
+## Custom CUDA kernels
+
+Requires an NVIDIA GPU, CUDA toolkit, and compatible PyTorch build:
 
 ```bash
-python src/model.py
+python cuda/bindings/build.py
+python benchmarks/cuda_benchmark.py
 ```
+
+The Python API in `cuda/ops.py` automatically falls back to PyTorch on machines without CUDA.
+
+## Benchmarks and monitoring
+
+```bash
+python benchmarks/dataloader_benchmark.py
+python benchmarks/precision_benchmark.py
+python benchmarks/scaling_benchmark.py
+python monitoring/gpu_monitor.py --interval 2
+```
+
+See `benchmarks/RESULTS.md` for recorded measurements and hardware limitations.
+
+## SLURM
+
+```bash
+sbatch slurm/single_node.slurm
+sbatch slurm/multi_node.slurm
+```
+
+## Inference API
+
+```bash
+CHECKPOINT=checkpoints/ckpt.pt uvicorn inference.api:app --host 0.0.0.0 --port 8000
+```
+
+Endpoints:
+- `GET /health`
+- `POST /generate`
+- `POST /generate_batch`
+- `POST /reload`
 
 ## Docker
 
-Build the CUDA development image:
-
 ```bash
 docker build -t distributed-gpt .
+docker run --gpus all -p 8000:8000 distributed-gpt
 ```
 
-Run the container with an NVIDIA GPU:
+## Verification notes
 
-```bash
-docker run --gpus all --rm -it distributed-gpt
-```
-
-## Roadmap
-
-- [x] Phase 1 — Repository setup and baseline GPT
-- [ ] Phase 2 — Multi-GPU training with DDP
-- [ ] Phase 3 — FSDP/sharded training and gradient checkpointing
-- [ ] Phase 4 — Custom CUDA kernels for fused operations and attention
-- [ ] Phase 5 — Throughput, memory, and kernel benchmarks
-- [ ] Phase 6 — Monitoring and SLURM multi-node training
-- [ ] Phase 7 — Optimized inference with KV caching and batching
+The codebase is designed to degrade gracefully on CPU-only machines: CUDA kernels use a tested PyTorch fallback, while DDP can use Gloo for distributed correctness tests. Actual CUDA performance, NCCL scaling, FSDP memory savings, SLURM execution, and Docker GPU execution require the corresponding hardware/infrastructure.
 
 ## License
 
