@@ -1,0 +1,11 @@
+distributed-gpt is a small systems project built to study how efficiently a language model can be trained and how that training scales from one processor to many. The model is intentionally modest and built from scratch.
+
+Training begins on a single device. A tokenizer turns raw text into integers. A dataset creates overlapping next-token examples. A small transformer predicts the next token, and gradient descent updates its weights.
+
+Once the single-device loop works, the project asks efficiency questions: does more data-loader parallelism help, does lower precision change throughput, and what happens when multiple accelerators synchronize their gradients.
+
+Distributed data parallel training replicates the model and averages gradients across workers. Fully sharded training divides model state across devices so larger workloads can fit.
+
+Beyond one machine, SLURM schedules jobs across nodes and a fast network carries distributed communication. Checkpoints make long jobs resumable.
+
+Finally, a FastAPI inference service loads a trained checkpoint and turns a prompt into generated text. The project connects learning, optimization, distribution, measurement and deployment in one system.
