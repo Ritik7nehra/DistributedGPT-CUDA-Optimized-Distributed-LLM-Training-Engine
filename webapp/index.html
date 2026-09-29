@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DistributedGPT Lab</title>
+  <meta name="description" content="An interactive, non-technical journey through how DistributedGPT learns, scales, optimizes, and serves text." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home"><span class="brand-mark">DG</span><span>DistributedGPT Lab</span></a>
+    <nav>
+      <a href="#journey">Journey</a><a href="#evidence">Results</a><a href="#try">Try GPT</a>
+      <button id="techToggle" class="pill">Technical details: Off</button>
+    </nav>
+  </header>
+  <main>
+    <section id="home" class="hero section">
+      <div class="hero-copy">
+        <div class="eyebrow">AN INTERACTIVE ML SYSTEMS STORY</div>
+        <h1>See an AI model go from <em>learning words</em> to <em>scaling across machines.</em></h1>
+        <p class="lede">No distributed-systems background needed. Explore seven simple stages and see what changed, why it matters, and what the project produces.</p>
+        <div class="hero-actions"><a class="button primary" href="#journey">Start the journey ↓</a><a class="button secondary" href="#try">Try the model</a></div>
+        <div class="truth"><span class="dot"></span>Performance cards only show measured numbers. Missing GPU/HPC runs are clearly marked.</div>
+      </div>
+      <div class="hero-viz" aria-label="Animated AI training diagram">
+        <div class="orb core">GPT</div>
+        <div class="orbit o1"><span>Text</span></div><div class="orbit o2"><span>GPU</span></div><div class="orbit o3"><span>API</span></div>
+        <div class="hero-stat"><strong>7</strong><span>stages</span></div>
+      </div>
+    </section>
+    <section id="journey" class="section journey">
+      <div class="section-heading"><div><div class="eyebrow">THE JOURNEY</div><h2>One model. Seven upgrades.</h2></div><p>Click a stage. The explanation stays simple; turn on technical details when you want the engineering underneath.</p></div>
+      <div class="stage-tabs" id="stageTabs"></div>
+      <article class="stage-card" id="stageCard">
+        <div class="stage-copy">
+          <div class="stage-kicker" id="stageKicker"></div>
+          <h3 id="stageTitle"></h3><p class="stage-summary" id="stageSummary"></p>
+          <div class="plain-grid"><div><span>What changed</span><p id="stageChanged"></p></div><div><span>Why it matters</span><p id="stageWhy"></p></div><div><span>Output</span><p id="stageOutput"></p></div></div>
+          <div class="tech-panel" id="techPanel"><strong>Under the hood</strong><p id="stageTech"></p></div>
+        </div>
+        <div class="stage-viz" id="stageViz"></div>
+      </article>
+    </section>
+    <section id="evidence" class="section evidence">
+      <div class="section-heading"><div><div class="eyebrow">REAL EVIDENCE</div><h2>What did we actually measure?</h2></div><p>This project does not pretend an unrun GPU benchmark happened. These cards reflect the repository's recorded benchmark status.</p></div>
+      <div class="metric-grid">
+        <article class="metric-card featured"><span class="metric-label">Precision experiment · measured</span><div class="big-number">1.34×</div><h3>BF16 CPU throughput uplift</h3><p>6,550 vs 4,906 tokens/sec on the recorded CPU benchmark. This is not a GPU claim.</p><div class="bars"><div><label>FP32 <b>4,906</b></label><i style="--w:75%"></i></div><div><label>BF16 <b>6,550</b></label><i style="--w:100%"></i></div></div></article>
+        <article class="metric-card"><span class="metric-label">Data loading · measured</span><div class="big-number">0 workers</div><h3>Faster for this tiny dataset</h3><p>Extra worker processes were slower because IPC overhead outweighed the tiny per-sample work.</p><div class="callout">A useful negative result: measure, don't assume.</div></article>
+        <article class="metric-card locked"><span class="metric-label">CUDA kernel · awaiting GPU</span><div class="lock">GPU</div><h3>PyTorch vs custom CUDA</h3><p>The kernels are implemented, but a real NVIDIA GPU + nvcc is required for meaningful latency results.</p><button class="ghost" data-modal="gpu">How to unlock this result</button></article>
+        <article class="metric-card locked"><span class="metric-label">Distributed scaling · awaiting GPUs</span><div class="lock">1 → 2 → 4 → 8</div><h3>NCCL scaling curve</h3><p>CPU/Gloo plumbing is verified. The portfolio-grade result is the real multi-GPU NCCL throughput curve.</p><button class="ghost" data-modal="scale">How to benchmark it</button></article>
+        <article class="metric-card locked"><span class="metric-label">FSDP · awaiting GPUs</span><div class="lock">MEM</div><h3>DDP vs FSDP memory</h3><p>FSDP is implemented; the honest output is still pending a multi-GPU memory benchmark.</p><button class="ghost" data-modal="fsdp">What to measure</button></article>
+        <article class="metric-card locked"><span class="metric-label">HPC · awaiting cluster</span><div class="lock">HPC</div><h3>Single-node vs multi-node</h3><p>SLURM scripts are ready, but this needs a real cluster to produce a credible cross-node result.</p><button class="ghost" data-modal="hpc">What the final result looks like</button></article>
+      </div>
+    </section>
+    <section class="section simulator">
+      <div class="section-heading"><div><div class="eyebrow">PLAY WITH THE IDEA</div><h2>Why add more GPUs?</h2></div><p>This is a conceptual animation—not a benchmark. Move the slider to see how work can be divided among workers.</p></div>
+      <div class="sim-card"><div class="slider-row"><label for="gpuSlider">GPU workers</label><input id="gpuSlider" type="range" min="1" max="8" value="1" step="1"><output id="gpuCount">1 GPU</output></div><div id="gpuWorkers" class="workers"></div><div class="sim-explain" id="simExplain"></div></div>
+    </section>
+    <section id="try" class="section try-section">
+      <div class="section-heading"><div><div class="eyebrow">FINAL PAYOFF</div><h2>Try DistributedGPT</h2></div><p>The UI can call your FastAPI <code>/generate</code> endpoint. If no backend is running, demo mode explains exactly what would happen.</p></div>
+      <div class="chat-shell">
+        <div class="chat-top"><div><span class="status" id="apiStatus"></span><strong>DistributedGPT</strong><small id="apiStatusText">Checking local API…</small></div><button id="settingsBtn" class="ghost">API settings</button></div>
+        <div class="messages" id="messages"><div class="message assistant"><span>DG</span><p>Give me a prompt. If your trained checkpoint is connected, I'll generate with your model.</p></div></div>
+        <form id="chatForm" class="composer"><textarea id="prompt" rows="2" placeholder="Try: Artificial intelligence will…" required></textarea><button class="send" type="submit">Generate →</button></form>
+        <div class="generation-meta" id="generationMeta"></div>
+      </div>
+    </section>
+    <section class="section finale">
+      <div class="eyebrow">THE WHOLE STORY</div><h2>Built → accelerated → distributed → measured → deployed.</h2>
+      <div class="final-flow"><span>🧠<b>Learn</b></span><i>→</i><span>⚡<b>Scale</b></span><i>→</i><span>📦<b>Fit</b></span><i>→</i><span>🚀<b>Optimize</b></span><i>→</i><span>📊<b>Prove</b></span><i>→</i><span>🖥️<b>Cluster</b></span><i>→</i><span>💬<b>Serve</b></span></div>
+      <p>A non-technical visitor sees a simple story. A technical interviewer can switch on the implementation details without leaving the experience.</p>
+    </section>
+  </main>
+  <dialog id="infoModal"><button class="close" aria-label="Close">×</button><h3 id="modalTitle"></h3><div id="modalBody"></div></dialog>
+  <dialog id="settingsModal"><button class="close" aria-label="Close">×</button><h3>Inference API settings</h3><label class="field">API base URL<input id="apiBase" value="http://localhost:8000" /></label><p class="muted">Start the backend with <code>CHECKPOINT=checkpoints/ckpt.pt uvicorn inference.api:app --port 8000</code>.</p><button id="saveApi" class="button primary">Save & check</button></dialog>
+  <script src="app.js"></script>
+</body>
+</html>
